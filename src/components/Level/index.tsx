@@ -1,7 +1,3 @@
-import {
-  PressableProps,
-} from "react-native";
-
 import { THEME } from "../../styles/theme";
 import { styles } from "./styles";
 
@@ -11,7 +7,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { Pressable } from "react-native";
+import { Pressable, PressableProps } from "react-native";
 import { useEffect } from "react";
 
 const TYPE_COLORS = {
@@ -19,6 +15,8 @@ const TYPE_COLORS = {
   HARD: THEME.COLORS.DANGER_LIGHT,
   MEDIUM: THEME.COLORS.WARNING_LIGHT,
 };
+
+const PressableAnimated = Animated.createAnimatedComponent(Pressable);
 
 type Props = PressableProps & {
   title: string;
@@ -33,55 +31,58 @@ export function Level({
   ...rest
 }: Props) {
   const scale = useSharedValue(1);
-  const checked = useSharedValue(1)
+  const checked = useSharedValue(1);
 
   const COLOR = TYPE_COLORS[type];
 
   const animatedContainerStyle = useAnimatedStyle(() => {
     return {
       transform: [{ scale: scale.value }],
-      backgroundColor: interpolateColor(checked.value, [0, 1], ['transparent', COLOR])
+      backgroundColor: interpolateColor(
+        checked.value,
+        [0, 1],
+        ["transparent", COLOR]
+      ),
     };
   });
 
   const animatedTextStyle = useAnimatedStyle(() => {
     return {
-      color: interpolateColor(checked.value, [0, 1], [COLOR, THEME.COLORS.GREY_100])
-    }
-  })
+      color: interpolateColor(
+        checked.value,
+        [0, 1],
+        [COLOR, THEME.COLORS.GREY_100]
+      ),
+    };
+  });
 
-  function onPressIn(){
-    scale.value = withTiming(1.1)
+  function onPressIn() {
+    scale.value = withTiming(1.1);
   }
-  function onPressOut(){
-    scale.value = withTiming(1)
+  function onPressOut() {
+    scale.value = withTiming(1);
   }
 
   useEffect(() => {
-    checked.value = withTiming(isChecked ? 1 : 0) 
-  }, [isChecked])
+    checked.value = withTiming(isChecked ? 1 : 0);
+  }, [isChecked]);
 
   return (
-    <Pressable onPressIn={onPressIn} onPressOut={onPressOut} {...rest}>
-      <Animated.View
-        style={[
-          styles.container,
-          animatedContainerStyle,
-          {
-            borderColor: COLOR,
-          },
-        ]}
-      >
-        <Animated.Text
-          style={[
-            styles.title,
-            animatedTextStyle
-          ]}
-        >
-          {title}
-        </Animated.Text>
-      </Animated.View>
-    </Pressable>
+    <PressableAnimated
+      onPressIn={onPressIn}
+      onPressOut={onPressOut}
+      {...rest}
+      style={[
+        styles.container,
+        animatedContainerStyle,
+        {
+          borderColor: COLOR,
+        },
+      ]}
+    >
+      <Animated.Text style={[styles.title, animatedTextStyle]}>
+        {title}
+      </Animated.Text>
+    </PressableAnimated>
   );
 }
-
