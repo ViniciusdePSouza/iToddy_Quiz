@@ -13,6 +13,8 @@ import { Question } from "../../components/Question";
 import { QuizHeader } from "../../components/QuizHeader";
 import { ConfirmButton } from "../../components/ConfirmButton";
 import { OutlineButton } from "../../components/OutlineButton";
+import { ProgressBar } from "../../components/ProgressBar";
+
 import Animated, {
   Easing,
   Extrapolate,
@@ -24,9 +26,10 @@ import Animated, {
   withTiming,
   runOnJS,
 } from "react-native-reanimated";
-import { ProgressBar } from "../../components/ProgressBar";
+
 import { THEME } from "../../styles/theme";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { OverlayFeedback } from "../../components/OverlayFeedback";
 
 interface Params {
   id: string;
@@ -45,6 +48,7 @@ export function Quiz() {
   const [alternativeSelected, setAlternativeSelected] = useState<null | number>(
     null
   );
+  const [statusReply, setStatusReply] = useState(0)
 
   const { navigate } = useNavigation();
 
@@ -58,7 +62,12 @@ export function Quiz() {
   function shakeAnimation() {
     shake.value = withSequence(
       withTiming(3, { duration: 400, easing: Easing.bounce }),
-      withTiming(1)
+      withTiming(0,undefined, (finished) => {
+        'worklet'
+        if(finished) {
+          runOnJS(handleNextQuestion)
+        }
+      })
     );
   }
 
@@ -99,7 +108,10 @@ export function Quiz() {
 
     if (quiz.questions[currentQuestion].correct === alternativeSelected) {
       setPoints((prevState) => prevState + 1);
+      setStatusReply(1)
+      handleNextQuestion()
     } else {
+      setStatusReply(2)
       shakeAnimation();
     }
 
@@ -167,7 +179,8 @@ export function Quiz() {
     const rotateInZ = cardPosition.value / CARD_INCLINATION;
     return {
       transform: [
-        { translateX: cardPosition.value, rotateZ: `${rotateInZ}deg` },
+        { translateX: cardPosition.value },
+        { rotateZ: `${rotateInZ}deg` },
       ],
     };
   });
@@ -228,6 +241,7 @@ export function Quiz() {
 
   return (
     <View style={styles.container}>
+      <OverlayFeedback status={statusReply}/>
       <Animated.View style={fixedProgressBarStyles}>
         <Text style={styles.title}>{quiz.title}</Text>
 
@@ -242,20 +256,21 @@ export function Quiz() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.question}
       >
+        <Animated.View style={[styles.header, headerStyle]}>
+          <QuizHeader
+            title={quiz.title}
+            currentQuestion={currentQuestion + 1}
+            totalOfQuestions={quiz.questions.length}
+          />
+        </Animated.View>
         <GestureDetector gesture={Gesture.Simultaneous(onPan, longPress)}>
-          <Animated.View style={[styles.header, headerStyle]}>
-            <QuizHeader
-              title={quiz.title}
-              currentQuestion={currentQuestion + 1}
-              totalOfQuestions={quiz.questions.length}
-            />
-          </Animated.View>
           <Animated.View style={[shakeStyleAnimated, dragStyle]}>
             <Question
               key={quiz.questions[currentQuestion].title}
               question={quiz.questions[currentQuestion]}
               alternativeSelected={alternativeSelected}
               setAlternativeSelected={setAlternativeSelected}
+              onUnmount={ () => setStatusReply(0)}
             />
           </Animated.View>
         </GestureDetector>
@@ -266,7 +281,4 @@ export function Quiz() {
       </Animated.ScrollView>
     </View>
   );
-}
-function runOnJs(arg0: void) {
-  throw new Error("Function not implemented.");
 }
